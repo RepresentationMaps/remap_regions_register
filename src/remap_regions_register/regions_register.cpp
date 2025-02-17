@@ -1,0 +1,145 @@
+// Copyright 2025 PAL Robotics, S.L.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include <iostream>
+#include <algorithm>
+
+#include "remap_regions_register/regions_register.hpp"
+
+namespace remap
+{
+namespace regions_register
+{
+RegionsRegister::RegionsRegister(const bool & threaded)
+: threaded_(threaded),
+  id_(-1) {}
+
+RegionsRegister::~RegionsRegister() {}
+
+int RegionsRegister::addArea(const std::vector<std::string> & regs)
+{
+  // adds a new area assigned to the set of regions regs
+  std::lock_guard<std::recursive_mutex> guard(register_mutex_);
+  id_++;
+  areas_[regs] = id_;
+  return id_;
+}
+
+std::map<int, int> RegionsRegister::removeRegion(const std::string & reg)
+{
+  // remove an entire region from the register
+  std::vector<std::vector<std::string>> areas_to_remove;
+  std::map<std::vector<std::string>, int> areas_to_add;
+  std::map<int, int> ids_to_update;
+  std::lock_guard<std::recursive_mutex> guard(register_mutex_);
+  for (const auto & area : areas_) {
+    auto regs = area.first;
+    auto reg_elem = std::find(regs.begin(), regs.end(), reg);
+    if (reg_elem == regs.end()) {
+      continue;
+    }
+    // At this point, we know that the region we are removing
+    // is contained inside of this area;
+    // Therefore, we add this area to those to remove
+    areas_to_remove.push_back(regs);
+    regs.erase(reg_elem);
+    if (regs.size() == 0) {
+      // We just found the register entrance
+      // cotaining only the region we are deleting
+      continue;
+    }
+    int old_id = area.second;
+    int new_id = findRegions(regs);
+    if (new_id == -1) {
+      areas_to_add.insert(std::pair(regs, old_id));
+    } else {
+      ids_to_update.insert(std::pair<int, int>(old_id, new_id));
+    }
+  }
+  // We proceed removing the elements from the areas, according
+  // to the previous iteration
+  for (const auto & area : areas_to_remove) {
+    areas_.erase(area);
+  }
+  // We complete the updated by adding those new areas
+  // created by the removal of this RegionOfSpace
+  for (const auto & area : areas_to_add) {
+    areas_.insert(area);
+  }
+  return ids_to_update;
+}
+
+int RegionsRegister::findRegions(const std::vector<std::string> & regs) const
+{
+  auto elem = areas_.find(regs);
+  if (elem == areas_.end()) {
+    return -1;
+  } else {
+    return elem->second;
+  }
+}
+
+std::vector<std::string> RegionsRegister::findRegionsById(const int & id) const
+{
+  std::vector<std::string> regs;
+  for (auto elem : areas_) {
+    if (elem.second == id) {
+      regs = elem.first;
+      break;
+    }
+  }
+  return regs;
+}
+
+void RegionsRegister::clear()
+{
+  areas_.clear();
+  id_ = -1;
+}
+
+int RegionsRegister::getRegionsNumber() const
+{
+  return areas_.size();
+}
+
+void RegionsRegister::print() const
+{
+  for (auto elem : areas_) {
+    std::cout << "Area " << elem.second << ": ";
+    for (auto reg : elem.first) {
+      std::cout << reg << " ";
+    }
+    std::cout << std::endl;
+  }
+}
+
+int RegionsRegister::getId() const
+{
+  return id_;
+}
+
+std::vector<std::string> RegionsRegister::getInstances() const
+{
+  std::vector<std::string> instances;
+  for (const auto & area : areas_) {
+    for (const auto & instance : area.first) {
+      if (std::find(instances.begin(), instances.end(), instance) == instances.end()) {
+        instances.push_back(instance);
+      }
+    }
+  }
+  return instances;
+}
+}  // namespace regions_register
+}  // namespace remap
