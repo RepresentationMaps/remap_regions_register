@@ -49,6 +49,7 @@ public:
   int getId() const;
 
   std::vector<std::string> getInstances() const;
+  std::vector<std::vector<std::string>> getEntries() const;
 };
 }  // namespace regions_register
 }  // namespace remap

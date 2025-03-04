@@ -141,5 +141,14 @@ std::vector<std::string> RegionsRegister::getInstances() const
   }
   return instances;
 }
+
+std::vector<std::vector<std::string>> RegionsRegister::getEntries() const
+{
+  std::vector<std::vector<std::string>> entries;
+  for (const auto & area : areas_) {
+    entries.push_back(area.first);
+  }
+  return entries;
+} 
 }  // namespace regions_register
 }  // namespace remap
