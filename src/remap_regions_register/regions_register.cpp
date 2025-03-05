@@ -27,26 +27,51 @@ RegionsRegister::RegionsRegister(const bool & threaded)
 
 RegionsRegister::~RegionsRegister() {}
 
-int RegionsRegister::addArea(const std::vector<std::string> & regs)
-{
-  // adds a new area assigned to the set of regions regs
+int RegionsRegister::addArea(const std::vector<std::string> & regs){
+  // adds a new area assigned to the set of regions regs;
+  // The logic is that it always tries to assign the lowest possible
+  // id (>= 0).
   std::lock_guard<std::recursive_mutex> guard(register_mutex_);
+  
+
   id_++;
-  areas_[regs] = id_;
-  return id_;
+  int id;
+  if (lookup_areas_.size() == 0) {
+    // Since no areas are stored, id 0 is available
+    id = 0;
+  } else if (lookup_areas_.begin()->first != 0) {
+    // The area with ID 0 does not exist;
+    // it is possible to use ID 0
+    id = 0;
+  } else {
+    auto lookup_it = lookup_areas_.begin();
+    while ((lookup_it != lookup_areas_.end()) && (std::next(lookup_it) != lookup_areas_.end())) {
+      if ((lookup_it->first + 1) != (std::next(lookup_it))->first) {
+        id = lookup_it->first + 1;
+        break;
+      }
+      lookup_it++;
+    }
+    if (std::next(lookup_it) == lookup_areas_.end()) {
+      id = lookup_it->first + 1;
+    }
+  }
+  areas_[regs] = id;
+  lookup_areas_[id] = regs;
+  return id;
 }
 
-std::map<int, int> RegionsRegister::removeRegion(const std::string & reg)
-{
+std::map<int, int> RegionsRegister::removeRegion(const std::string & reg){
   // remove an entire region from the register
   std::vector<std::vector<std::string>> areas_to_remove;
   std::map<std::vector<std::string>, int> areas_to_add;
   std::map<int, int> ids_to_update;
   std::lock_guard<std::recursive_mutex> guard(register_mutex_);
-  for (const auto & area : areas_) {
-    auto regs = area.first;
-    auto reg_elem = std::find(regs.begin(), regs.end(), reg);
-    if (reg_elem == regs.end()) {
+  bool standalone_reg_removed = false;
+  for (const auto & area: areas_){
+    auto regs =  area.first;
+    auto reg_elem = std::find(regs.begin(), regs.end(), reg); 
+    if (reg_elem == regs.end()){
       continue;
     }
     // At this point, we know that the region we are removing
@@ -54,27 +79,55 @@ std::map<int, int> RegionsRegister::removeRegion(const std::string & reg)
     // Therefore, we add this area to those to remove
     areas_to_remove.push_back(regs);
     regs.erase(reg_elem);
-    if (regs.size() == 0) {
+    if (regs.size() == 0){
       // We just found the register entrance
-      // cotaining only the region we are deleting
+      // cotaining only the region we are deleting.
+      // We can remove the BBox associated with this ID.
+      if (!standalone_reg_removed){
+        auto id_to_remove = areas_.find({reg});
+        if (id_to_remove != areas_.end()){
+          lookup_areas_.erase(id_to_remove->second);
+          standalone_reg_removed = true;
+        }
+      }
       continue;
     }
     int old_id = area.second;
     int new_id = findRegions(regs);
-    if (new_id == -1) {
+    if (new_id == -1){
+      // This is the case where we are removing
+      // an entity example_123 from the register
+      // and we are iterating over the area
+      // {example_123, example_456}. If the area
+      // {example_456} does not exist, we assign
+      // the area {example_456} to the current
+      // {example_123, example_456} ID. This
+      // operation does not affect the BBoxes size
       areas_to_add.insert(std::pair(regs, old_id));
     } else {
+      // This is the case where we are removing
+      // an entity example_123 from the register
+      // and we are iterating over the area
+      // {example_123, example_456}. If the area
+      // {example_456} exists, we have to update the
+      // value stored in those voxels containing
+      // the ID assigned to {example_123, example_456}
+      // with the ID assigned to {example_456}.
+      // We have to enlarge the {example_456} BBox
+      // and remove the {example_123, example_456} BBox
       ids_to_update.insert(std::pair<int, int>(old_id, new_id));
+      // we can also remove the old_id from the id_reg
+      lookup_areas_.erase(old_id);
     }
   }
   // We proceed removing the elements from the areas, according
   // to the previous iteration
-  for (const auto & area : areas_to_remove) {
+  for (const auto & area: areas_to_remove){
     areas_.erase(area);
   }
   // We complete the updated by adding those new areas
   // created by the removal of this RegionOfSpace
-  for (const auto & area : areas_to_add) {
+  for (const auto & area: areas_to_add){
     areas_.insert(area);
   }
   return ids_to_update;

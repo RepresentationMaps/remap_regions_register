@@ -31,6 +31,7 @@ protected:
   bool threaded_;
   std::recursive_mutex register_mutex_;
   std::map<std::vector<std::string>, int> areas_;
+  std::map<int, std::vector<std::string>> lookup_areas_;
   int id_;
 
 public:
