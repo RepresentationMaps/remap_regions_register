@@ -202,6 +202,20 @@ std::vector<std::vector<std::string>> RegionsRegister::getEntries() const
     entries.push_back(area.first);
   }
   return entries;
-} 
+}
+
+void RegionsRegister::addEntityType(const std::string & entity, const std::string & type)
+{
+  entities_types_[entity] = type;
+}
+
+std::string RegionsRegister::getEntityType(const std::string & entity)
+{
+  if (entities_types_.find(entity) != entities_types_.end()) {
+    return entities_types_[entity];
+  } else {
+    return "";
+  }
+}
 }  // namespace regions_register
 }  // namespace remap

@@ -32,6 +32,7 @@ protected:
   std::recursive_mutex register_mutex_;
   std::map<std::vector<std::string>, int> areas_;
   std::map<int, std::vector<std::string>> lookup_areas_;
+  std::map<std::string, std::string> entities_types_;
   int id_;
 
 public:
@@ -51,6 +52,9 @@ public:
 
   std::vector<std::string> getInstances() const;
   std::vector<std::vector<std::string>> getEntries() const;
+
+  void addEntityType(const std::string & entity, const std::string & type);
+  std::string getEntityType(const std::string & entity);
 };
 }  // namespace regions_register
 }  // namespace remap
