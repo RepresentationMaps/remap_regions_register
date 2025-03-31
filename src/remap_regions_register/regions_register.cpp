@@ -27,12 +27,13 @@ RegionsRegister::RegionsRegister(const bool & threaded)
 
 RegionsRegister::~RegionsRegister() {}
 
-int RegionsRegister::addArea(const std::vector<std::string> & regs){
+int RegionsRegister::addArea(const std::vector<std::string> & regs)
+{
   // adds a new area assigned to the set of regions regs;
   // The logic is that it always tries to assign the lowest possible
   // id (>= 0).
   std::lock_guard<std::recursive_mutex> guard(register_mutex_);
-  
+
 
   id_++;
   int id;
@@ -61,17 +62,18 @@ int RegionsRegister::addArea(const std::vector<std::string> & regs){
   return id;
 }
 
-std::map<int, int> RegionsRegister::removeRegion(const std::string & reg){
+std::map<int, int> RegionsRegister::removeRegion(const std::string & reg)
+{
   // remove an entire region from the register
   std::vector<std::vector<std::string>> areas_to_remove;
   std::map<std::vector<std::string>, int> areas_to_add;
   std::map<int, int> ids_to_update;
   std::lock_guard<std::recursive_mutex> guard(register_mutex_);
   bool standalone_reg_removed = false;
-  for (const auto & area: areas_){
-    auto regs =  area.first;
-    auto reg_elem = std::find(regs.begin(), regs.end(), reg); 
-    if (reg_elem == regs.end()){
+  for (const auto & area : areas_) {
+    auto regs = area.first;
+    auto reg_elem = std::find(regs.begin(), regs.end(), reg);
+    if (reg_elem == regs.end()) {
       continue;
     }
     // At this point, we know that the region we are removing
@@ -79,13 +81,13 @@ std::map<int, int> RegionsRegister::removeRegion(const std::string & reg){
     // Therefore, we add this area to those to remove
     areas_to_remove.push_back(regs);
     regs.erase(reg_elem);
-    if (regs.size() == 0){
+    if (regs.size() == 0) {
       // We just found the register entrance
       // cotaining only the region we are deleting.
       // We can remove the BBox associated with this ID.
-      if (!standalone_reg_removed){
+      if (!standalone_reg_removed) {
         auto id_to_remove = areas_.find({reg});
-        if (id_to_remove != areas_.end()){
+        if (id_to_remove != areas_.end()) {
           lookup_areas_.erase(id_to_remove->second);
           standalone_reg_removed = true;
         }
@@ -94,7 +96,7 @@ std::map<int, int> RegionsRegister::removeRegion(const std::string & reg){
     }
     int old_id = area.second;
     int new_id = findRegions(regs);
-    if (new_id == -1){
+    if (new_id == -1) {
       // This is the case where we are removing
       // an entity example_123 from the register
       // and we are iterating over the area
@@ -122,12 +124,12 @@ std::map<int, int> RegionsRegister::removeRegion(const std::string & reg){
   }
   // We proceed removing the elements from the areas, according
   // to the previous iteration
-  for (const auto & area: areas_to_remove){
+  for (const auto & area : areas_to_remove) {
     areas_.erase(area);
   }
   // We complete the updated by adding those new areas
   // created by the removal of this RegionOfSpace
-  for (const auto & area: areas_to_add){
+  for (const auto & area : areas_to_add) {
     areas_.insert(area);
   }
   return ids_to_update;
@@ -153,6 +155,22 @@ std::vector<std::string> RegionsRegister::findRegionsById(const int & id) const
     }
   }
   return regs;
+}
+
+std::map<std::vector<std::string>, int> RegionsRegister::getAreas() const
+{
+  return areas_;
+}
+
+std::vector<int> RegionsRegister::getEntityIds(const std::string & entity) const
+{
+  std::vector<int> ids;
+  for (const auto & area : areas_) {
+    if (std::find(area.first.begin(), area.first.end(), entity) != area.first.end()) {
+      ids.push_back(area.second);
+    }
+  }
+  return ids;
 }
 
 void RegionsRegister::clear()
@@ -217,5 +235,21 @@ std::string RegionsRegister::getEntityType(const std::string & entity)
     return "";
   }
 }
+
+std::unordered_set<std::string> RegionsRegister::getCoexistentEntities(const std::string & entity) {
+  std::unordered_set<std::string> coexisting;
+
+  for (const auto & region : areas_) {
+    if (std::find(region.first.begin(), region.first.end(), entity) != region.first.end()) {
+      for (const auto & coexisting_entity : region.first) {
+        coexisting.insert(coexisting_entity);
+      }
+    }
+  }
+
+  coexisting.erase(entity);
+  return coexisting;
+}
+
 }  // namespace regions_register
 }  // namespace remap

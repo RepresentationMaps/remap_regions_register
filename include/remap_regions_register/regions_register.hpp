@@ -20,6 +20,7 @@
 #include <map>
 #include <vector>
 #include <mutex>
+#include <unordered_set>
 
 namespace remap
 {
@@ -43,6 +44,8 @@ public:
   std::map<int, int> removeRegion(const std::string & reg);
   int findRegions(const std::vector<std::string> & regs) const;
   std::vector<std::string> findRegionsById(const int & id) const;
+  std::map<std::vector<std::string>, int> getAreas() const;
+  std::vector<int> getEntityIds(const std::string & entity) const;
   void clear();
 
   // Debugging functions
@@ -55,6 +58,7 @@ public:
 
   void addEntityType(const std::string & entity, const std::string & type);
   std::string getEntityType(const std::string & entity);
+  std::unordered_set<std::string> getCoexistentEntities(const std::string & entity);
 };
 }  // namespace regions_register
 }  // namespace remap
