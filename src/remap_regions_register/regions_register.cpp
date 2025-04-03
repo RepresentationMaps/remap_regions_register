@@ -236,7 +236,8 @@ std::string RegionsRegister::getEntityType(const std::string & entity)
   }
 }
 
-std::unordered_set<std::string> RegionsRegister::getCoexistentEntities(const std::string & entity) {
+std::unordered_set<std::string> RegionsRegister::getCoexistentEntities(const std::string & entity)
+{
   std::unordered_set<std::string> coexisting;
 
   for (const auto & region : areas_) {
