@@ -2,8 +2,8 @@
 Changelog for package remap_regions_register
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.2.0 (2025-04-04)
+------------------
 * making linters happy
 * additional spatial relationship support functions
 * added structure to store entities type
