@@ -38,6 +38,8 @@ ament_export_libraries(
 if(BUILD_TESTING)
   ament_auto_find_test_dependencies()
   ament_lint_auto_find_test_dependencies()
+
+  add_subdirectory(test)
 endif()
 
 ament_auto_package()
