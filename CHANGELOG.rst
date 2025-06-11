@@ -2,6 +2,12 @@
 Changelog for package remap_regions_register
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* defined tests
+* removed useless rclcpp dependance
+* Contributors: Lorenzo Ferrini
+
 0.2.0 (2025-04-04)
 ------------------
 * making linters happy
