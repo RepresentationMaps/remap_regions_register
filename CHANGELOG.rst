@@ -2,8 +2,8 @@
 Changelog for package remap_regions_register
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.2.1 (2025-06-11)
+------------------
 * defined tests
 * removed useless rclcpp dependance
 * Contributors: Lorenzo Ferrini
